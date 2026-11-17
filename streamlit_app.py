@@ -1,3 +1,4 @@
+
 import requests
 import streamlit as st
 
@@ -13,17 +14,36 @@ st.caption("Your AI assistant for secure software development")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-
 if st.button("Clear Chat"):
     st.session_state.messages = []
     st.rerun()
 
-
+# Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
+        if message.get("sources"):
+            with st.expander("Retrieved Sources"):
+                for source in message["sources"]:
+                    st.write(
+                        f"{source['file']} — "
+                        f"Chunk {source['chunk_index']}"
+                    )
 
+# Knowledge source selection
+source_options = {
+    "All Sources": "all",
+    "FastAPI": "fastapi_oauth2_jwt.md",
+    "OWASP": "owasp_authentication.md"
+}
+
+selected_source = st.selectbox(
+    "Knowledge Source",
+    options=list(source_options.keys())
+)
+
+# Chat input
 if prompt := st.chat_input("Ask a security question..."):
     st.session_state.messages.append({
         "role": "user",
@@ -34,16 +54,32 @@ if prompt := st.chat_input("Ask a security question..."):
         st.write(prompt)
 
     with st.chat_message("assistant"):
+        sources = []
+
         with st.spinner("Thinking..."):
             try:
+                
                 response = requests.post(
                     "http://127.0.0.1:8000/chat",
-                    json={"question": prompt},
+                    json={
+                        "question": prompt,
+                        "source": source_options[selected_source],
+                        "history": [
+                            {
+                                "role": message["role"],
+                                "content": message["content"]
+                            }
+                            for message in st.session_state.messages[:-1]
+                        ]
+                    },
                     timeout=180
                 )
 
+
                 response.raise_for_status()
-                answer = response.json()["answer"]
+                result = response.json()
+                answer = result["answer"]
+                sources = result.get("sources", [])
 
             except requests.exceptions.RequestException:
                 answer = "Unable to connect to the backend server."
@@ -53,8 +89,16 @@ if prompt := st.chat_input("Ask a security question..."):
 
         st.write(answer)
 
+        if sources:
+            with st.expander("Retrieved Sources"):
+                for source in sources:
+                    st.write(
+                        f"{source['file']} — "
+                        f"Chunk {source['chunk_index']}"
+                    )
+
     st.session_state.messages.append({
         "role": "assistant",
-        "content": answer
+        "content": answer,
+        "sources": sources
     })
-
