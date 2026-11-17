@@ -1,4 +1,3 @@
-
 # SecureDev AI
 
 SecureDev AI is a local, retrieval-augmented generation (RAG) chatbot for secure software development.
@@ -35,6 +34,28 @@ It answers questions using FastAPI security documentation and the OWASP Authenti
 Download the language model:
 
     ollama pull gemma3:4b
+
+## Installation
+
+Clone the repository and open the project directory.
+
+Create a Python 3.13 virtual environment on Windows:
+
+    py -3.13 -m venv .venv313
+
+Install the Python dependencies:
+
+    .\.venv313\Scripts\python.exe -m pip install -r requirements.txt
+
+Download the Ollama model:
+
+    ollama pull gemma3:4b
+
+Build the ChromaDB index:
+
+    .\.venv313\Scripts\python.exe -m app.rag.index_documents
+
+Make sure Ollama is running before starting the application.
 
 ## Running the Application
 
