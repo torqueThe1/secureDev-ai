@@ -18,6 +18,7 @@ if st.button("Clear Chat"):
     st.session_state.messages = []
     st.rerun()
 
+
 # Display chat history
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
@@ -31,6 +32,16 @@ for message in st.session_state.messages:
                         f"Chunk {source['chunk_index']}"
                     )
 
+        if message.get("code_examples"):
+            with st.expander("Original Code Examples"):
+                for example in message["code_examples"]:
+                    st.caption(
+                        f"{example['file']} — "
+                        f"Chunk {example['chunk_index']}"
+                    )
+                    st.code(example["code"], language="python")
+
+
 # Knowledge source selection
 source_options = {
     "All Sources": "all",
@@ -42,6 +53,7 @@ selected_source = st.selectbox(
     "Knowledge Source",
     options=list(source_options.keys())
 )
+
 
 # Chat input
 if prompt := st.chat_input("Ask a security question..."):
@@ -55,10 +67,10 @@ if prompt := st.chat_input("Ask a security question..."):
 
     with st.chat_message("assistant"):
         sources = []
+        code_examples = []
 
         with st.spinner("Thinking..."):
             try:
-                
                 response = requests.post(
                     "http://127.0.0.1:8000/chat",
                     json={
@@ -75,11 +87,12 @@ if prompt := st.chat_input("Ask a security question..."):
                     timeout=180
                 )
 
-
                 response.raise_for_status()
                 result = response.json()
+
                 answer = result["answer"]
                 sources = result.get("sources", [])
+                code_examples = result.get("code_examples", [])
 
             except requests.exceptions.RequestException:
                 answer = "Unable to connect to the backend server."
@@ -97,8 +110,18 @@ if prompt := st.chat_input("Ask a security question..."):
                         f"Chunk {source['chunk_index']}"
                     )
 
+        if code_examples:
+            with st.expander("Original Code Examples"):
+                for example in code_examples:
+                    st.caption(
+                        f"{example['file']} — "
+                        f"Chunk {example['chunk_index']}"
+                    )
+                    st.code(example["code"], language="python")
+
     st.session_state.messages.append({
         "role": "assistant",
         "content": answer,
-        "sources": sources
+        "sources": sources,
+        "code_examples": code_examples
     })

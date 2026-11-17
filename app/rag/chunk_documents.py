@@ -35,3 +35,29 @@ def split_text(text: str, chunk_size: int = 1000, overlap: int = 200) -> list[st
             start += 1
 
     return chunks
+
+
+def split_python_code(text: str) -> list[str]:
+    import ast
+
+    tree = ast.parse(text)
+    lines = text.splitlines()
+    chunks = []
+
+    for node in tree.body:
+        if isinstance(
+            node,
+            (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
+        ):
+            start_line = min(
+                (decorator.lineno for decorator in node.decorator_list),
+                default=node.lineno
+            )
+
+            code_block = "\n".join(
+                lines[start_line - 1:node.end_lineno]
+            )
+
+            chunks.append(code_block)
+
+    return chunks
